@@ -1,0 +1,20 @@
+autobuilder:
+	version ->1.0
+	env ->just for linux or unix platform, with gcc or clang compiler
+	aim ->just for convenient 
+
+operate sequence:
+	1. move all dir in autobuilder to your program root dir, command just like:
+	   mv autobuilder/*  /XXXX/XXXX/YOUR PROGRAM
+	2. modify 'makefile.comm' in 'build' dir, add your own -I/dir or -llib 	
+	3. ./configure, get detail by command:
+	   ./configure --help    or      ./configure -h
+	4. make	
+	5. make install
+	6. make clean
+	7. make distclean
+	
+thanks:
+	idea come from hengpan's raw framework and jiaxin help me test!
+
+														author louluo
