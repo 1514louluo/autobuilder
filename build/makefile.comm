@@ -1,0 +1,37 @@
+#######################need not to modify!################
+INCLUDE=
+CFLAGS = -g -O3 -D_REENTRANT -DLOGGER -D_DEBUG -D__USE_EPOLL -D__LINUX__ -D_UNIX  
+LIBS=
+#......shared lib........#
+DLIBS=
+#......static lib........#
+SLIBS=
+
+#<<<<<<<<<#################just for user define!!##################>>>>>>>>>>>>>>>>#
+IPATH_LOG4CPLUS		= /usr/local/log4cplus-1.0.4-rc6
+IPATH_ZEROMQ_INC    = /usr/local/zeromq-3.2.2/include
+
+DLIB_BOOST       =  -L/usr/lib  -lboost_thread
+
+SLIB_LIBEVENT    = /usr/local/libevent-2.0.19/lib/libevent.a  /usr/local/libevent-2.0.19/lib/libevent_core.a
+SLIB_ZEROMQ      = /usr/local/zeromq-3.2.2/lib/libzmq.a
+
+
+INCLUDE += -I/usr/include/openssl \
+           -I/usr/local/libevent2.0.15/include  \
+	       -I/usr/local/include \
+	       -I/usr/local/include/boost-1_36  \
+           -I$(IPATH_LOG4CPLUS)/include/log4cplus \
+           -I$(IPATH_ZEROMQ_INC)   \
+    
+DLIBS+= $(DLIB_BOOST) \
+        -lstdc++ -lrt -lbz2 -lpthread -lz -luuid -lz -lbz2 -lrt -lm -lc  \
+        -L/usr/local/lib/ -liconv \
+
+SLIBS+= /usr/local/lib/liblog4cplus.a  \
+ 	    $(SLIB_LIBEVENT) \
+        $(SLIB_ZEROMQ)  \
+
+#<<<<<<<<<<<<<<#####################don not modify###################################>>>>>>>>>>>>>#
+LIBS+=$(SLIBS)
+LIBS+=$(DLIBS)

@@ -1,0 +1,15 @@
+include ${MAKEFILE_COMM_PATH}
+OBJDIR = ${APP_OBJ_PATH}
+TARGET=${APP_TARGET}
+
+OBJ=$(wildcard ${OBJDIR}/*.o)
+OBJ_PLATFORM=$()
+
+$(TARGET):$(OBJ)
+ifeq (${APP_DBG},0)
+	@echo -e '\033[$(FORM)m    ld $(OBJ) \033[0m'
+	@$(CXX) -g -o  $@ $(OBJ) ${LIBS}
+else
+	$(CXX) -g -o  $@ $(OBJ) ${LIBS}
+endif
+

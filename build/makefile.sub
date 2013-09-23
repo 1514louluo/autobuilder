@@ -1,0 +1,23 @@
+include ${MAKEFILE_COMM_PATH}
+OBJDIR = ${APP_OBJ_PATH}
+INCLUDE+=${APP_INCLUDE}
+
+ifeq ($(CXX),gcc)
+	CFLAGS+=-Wall
+else
+	CFLAGS+=-W
+endif
+
+SOURCES = $(wildcard *.c) $(wildcard *.cpp) $(wildcard *.cc)
+BINARY = $(patsubst %.c,${OBJDIR}/%.o,$(patsubst %.cpp,${OBJDIR}/%.o,$(patsubst %.cc,${OBJDIR}/%.o,$(SOURCES))))
+
+all:$(BINARY)
+
+${OBJDIR}/%.o:%.c*
+ifeq (${APP_DBG},0)
+	@echo -e '\033[$(FORM)m    $(CXX) -c $(CFLAGS) $< \033[0m'
+	@$(CXX) $< -g -o  $@ -c $(INCLUDE) $(CFLAGS)
+else
+	$(CXX) $< -g -o  $@ -c $(INCLUDE) $(CFLAGS)
+endif
+
