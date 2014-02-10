@@ -10,6 +10,7 @@ APP_INSTALL_PATH=''
 APP_STAT=${NORMAL}
 APP_DBG=0
 APP_COMPRESS=0
+APP_MULCORE=0
 CXX='gcc'
 FORM='40;35;1'
 #################SOME PATH#######################
@@ -22,7 +23,7 @@ MAKEFILE_BASE_PATH=${APP_ROOT}/build
 MAKEFILE_SUB_PATH=${APP_ROOT}/build/makefile.sub
 MAKEFILE_COMM_PATH=${APP_ROOT}/build/makefile.comm
 MAKEFILE_OBJ_PATH=${APP_ROOT}/build/makefileobj
-# process command line options, shift
+# process command line options, shift 相当于左移,自然$#就减1
 while test $# -ge 1
 do
 case "$1" in
@@ -36,7 +37,8 @@ case "$1" in
       echo '  --compress     :  compress "bin log conf lib" to a zip file! ' 
       echo '  --perfix   -p  :  decide where you want to install! ' 
       echo '  --name     -n  :  decide what name you want to define! ' 
-      echo '  --compiler -c  :  default is gcc, now only support:[gcc | clang], please don not use other compilser! ' 
+      echo '  --compiler -c  :  default is gcc, now only support:[gcc | clang | g++ | clang++], please don not use other compilser! ' 
+      echo '  --mulcore  -j  :  decide how many core you want to run! ' 
       echo '  --form     -f  :  set echo style, form just like: foreground-color;background-color;action   '
       echo '  				    default style is 40;35;1   ,if you want set form, please read define just as follow:'
       echo '                    --background-color define:'
@@ -70,10 +72,12 @@ case "$1" in
     -n*=* | --name=*)                  APP_NAME=`echo $1 | sed 's/.*=//'`;shift ;;
     -c*=* | --compiler=*)              CXX=`echo $1 | sed 's/.*=//'`;shift ;;
     -f*=* | --form=*)                  FORM=`echo $1 | sed 's/.*=//'`;shift ;;
+    -j*=* | --mulcore=*)               APP_MULCORE=`echo $1 | sed 's/.*=//'`;shift ;;
     -p* | --prefix)                    APP_INSTALL_PATH="$2"; shift; shift ;;
     -n* | --name)                      APP_NAME="$2"; shift; shift ;;
     -c* | --compiler)                  CXX="$2"; shift; shift ;;
     -f* | --form)                      FORM="$2"; shift; shift ;;
+    -j* | --mulcore)                   APP_MULCORE="$2"; shift; shift ;;
     -s* | --shared | --enable-shared)  APP_STAT=${SHARED}; shift ;;
     -t | --static)                     APP_STAT=${STATIC}; shift ;;
     --verbose)                         APP_DBG=1; shift ;;
@@ -92,7 +96,7 @@ echo -e "APP_NAME=${APP_NAME}"
 echo -e "APP_INSTALL_PATH=${APP_INSTALL_PATH}"
 echo -e "CXX=${CXX}"
 case "${CXX}" in
-    gcc|clang)   ;;
+    gcc|clang|g++|clang++)   ;;
     *)
       echo -e "\033[40;31;1m ERROR   : Unknown option for --compile or -c, this only support [gcc | clang]!!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
@@ -237,7 +241,7 @@ do
   else
     echo -e "\033[40;31;1mERROR   : find no ${SLIBS[$index]}!\033[0m"
     echo -e "you should try follow path:" 
-    echo -e "${SLIBS[$index]}"
+#    echo -e "${SLIBS[$index]}"
     libname="$(echo "${SLIBS[$index]}" | sed -e 's/.*\///')"
     echo -e "$(locate ${libname})"
     exit 0
@@ -309,18 +313,32 @@ fi
 echo -e "\033[40;32;1m Generate makefile!!\033[0m"
 ########################generate makefile################################
 echo "APP_INCLUDE=${APP_INCLUDE[@]}" > ${APP_ROOT}/makefile
+echo -e "APP_DATE\t:=\$(shell date '+%Y%m%d%H')" >> ${APP_ROOT}/makefile
 ####################<<ALL>>############################
 echo "all:" >> ${APP_ROOT}/makefile
 
 for elem in ${VALID_SRC_DIRS[@]}
 do
-	echo ${elem} | grep -q '[.]' 
-	if [ $? -gt 0 ]; then
-		echo -e "\t @cd ${elem}; make -f makefile.sub MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\"" >>${APP_ROOT}/makefile
-	fi	
+        echo ${elem} | grep -q '[.]'
+        if [ $? -gt 0 ]; then
+                obj_cmd="\t @cd ${elem}; make -f makefile.sub MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\""
+                if [ ${APP_MULCORE} -gt 0 ]; then
+                        obj_cmd="${obj_cmd} -j${APP_MULCORE}"
+                fi
+                if [ ${APP_DBG} -eq 0 ]; then
+                        obj_cmd="${obj_cmd} -s"
+                fi
+
+                echo -e ${obj_cmd}>>${APP_ROOT}/makefile
+        fi
 done
 
-echo -e "\t @cd ${MAKEFILE_BASE_PATH}; make -f makefileobj MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_TARGET=\"${APP_BIN_PATH}/${APP_NAME}\"" >>${APP_ROOT}/makefile
+ld_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefileobj MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_TARGET=\"${APP_BIN_PATH}/${APP_NAME}\""
+if [ ${APP_DBG} -eq 0 ]; then
+        obj_cmd="${obj_cmd} -s"
+fi
+
+echo -e ${ld_cmd}>>${APP_ROOT}/makefile
 #########################<<clean>>##############################
 
 echo "clean:" >> ${APP_ROOT}/makefile
@@ -337,9 +355,9 @@ echo -e "\t rm -f ${APP_ROOT}/makefile" >>${APP_ROOT}/makefile
 
 #########################<<install>>##############################
 echo "install:" >> ${APP_ROOT}/makefile
-echo -e "\t mv ${APP_BIN_PATH}/${APP_NAME} ${APP_BIN_PATH}/${APP_NAME}_$(date '+%Y%m%d%H')">>${APP_ROOT}/makefile
-echo -e "\t echo \"./${APP_NAME}_$(date '+%Y%m%d%H') daemon\">${APP_BIN_PATH}/start.sh">>${APP_ROOT}/makefile
-echo -e "\t echo \"killall -9 ${APP_NAME}_$(date '+%Y%m%d%H')\">${APP_BIN_PATH}/stop.sh">>${APP_ROOT}/makefile
+echo -e "\t mv ${APP_BIN_PATH}/${APP_NAME} ${APP_BIN_PATH}/${APP_NAME}_\${APP_DATE}">>${APP_ROOT}/makefile
+echo -e "\t echo \"./${APP_NAME}_\${APP_DATE} daemon\">${APP_BIN_PATH}/start.sh">>${APP_ROOT}/makefile
+echo -e "\t echo \"killall -9 ${APP_NAME}_\${APP_DATE}\">${APP_BIN_PATH}/stop.sh">>${APP_ROOT}/makefile
 echo -e "\t echo \"./stop.sh;sleep 1;./start.sh\">${APP_BIN_PATH}/restart.sh">>${APP_ROOT}/makefile
 echo -e "\t chmod +x ${APP_BIN_PATH}/*.sh">>${APP_ROOT}/makefile
 if [ ! -z ${APP_INSTALL_PATH} ]; then
