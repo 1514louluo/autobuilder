@@ -1,0 +1,15 @@
+include $(MAKEFILE_CONF_PATH)
+OBJDIR = $(APP_OBJ_PATH)
+TARGET=$(APP_TARGET)
+
+OBJ=$(wildcard ${OBJDIR}/*.o)
+
+$(TARGET):$(OBJ)
+ifeq (${APP_DBG},0)
+	@echo -e '\033[$(FORM)m    building bin file ... \033[0m'
+	@echo -e '\033[$(FORM)m    ld $(OBJ) \033[0m'
+	@$(filter gcc clang,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
+else
+	$(filter gcc clang,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
+endif
+

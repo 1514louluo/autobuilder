@@ -1,16 +1,14 @@
 #!/bin/bash
 ###############SOME STAT###################
-NORMAL=0
-SHARED=1
-STATIC=2
 SYS_LIBS_CACHE='/etc/ld.so.cache'
 #################SOME user define#######################
 APP_NAME='my_app'
+APP_VERSION=''
 APP_INSTALL_PATH=''
-APP_STAT=${NORMAL}
+APP_STAT=1
 APP_DBG=0
-APP_COMPRESS=0
 APP_MULCORE=0
+CCACHE=0
 CXX='gcc'
 FORM='40;35;1'
 #################SOME PATH#######################
@@ -21,26 +19,45 @@ if [ ! -d ${APP_ROOT}/build ]; then
 fi
 MAKEFILE_BASE_PATH=${APP_ROOT}/build
 MAKEFILE_SUB_PATH=${APP_ROOT}/build/makefile.sub
-MAKEFILE_COMM_PATH=${APP_ROOT}/build/makefile.comm
-MAKEFILE_OBJ_PATH=${APP_ROOT}/build/makefileobj
-# process command line options, shift Áõ∏ÂΩì‰∫éÂ∑¶Áßª,Ëá™ÁÑ∂$#Â∞±Âáè1
+MAKEFILE_SUB_SHARED_PATH=${APP_ROOT}/build/makefile.sub.shared
+MAKEFILE_CONF_PATH=${APP_ROOT}/build/makefile.conf
+MAKEFILE_SHARED_PATH=${APP_ROOT}/build/makefile.shared
+MAKEFILE_STATIC_PATH=${APP_ROOT}/build/makefile.static
+MAKEFILE_OBJ_PATH=${APP_ROOT}/build/makefile.bin
+# process command line options, shift œ‡µ±”⁄◊Û“∆,◊‘»ª$#æÕºı1
 while test $# -ge 1
 do
 case "$1" in
     -h* | --help)
-      echo 'autobilder:' 
-      echo '  configure [--prefix=PREFIX] ' 
-      echo '  [--static or -t] [--shared or -s] [--verbose] [--compress] [--name or -n] [--compiler or -c]' 
-      echo '  --static   -t  :  compile to .a file in the lib! ' 
-      echo '  --shared   -s  :  compile to .so file in the lib! ' 
-      echo '  --verbose      :  display detail infos on compile command! ' 
-      echo '  --compress     :  compress "bin log conf lib" to a zip file! ' 
-      echo '  --perfix   -p  :  decide where you want to install! ' 
-      echo '  --name     -n  :  decide what name you want to define! ' 
-      echo '  --compiler -c  :  default is gcc, now only support:[gcc | clang | g++ | clang++], please don not use other compilser! ' 
-      echo '  --mulcore  -j  :  decide how many core you want to run! ' 
+      echo -e "\033[40;35;1m #---------------------------------------------------------------------------------------#\033[0m"
+      echo -e "\033[40;35;1m #                                                                                       #\033[0m"
+      echo -e "\033[40;35;1m #     #     #   #  ######   ###   ####    #   #    #     #       ####    #####    ####  #\033[0m"
+      echo -e "\033[40;35;1m #    ##    #   #    #     #   #  #   #   #   #    #     #       #   #   #        #   #  #\033[0m"
+      echo -e "\033[40;35;1m #   # #   #   #    #     #   #  ####    #   #    #     #       #   #   #####    ####    #\033[0m"
+      echo -e "\033[40;35;1m #  ####  #   #    #     #   #  #   #   #   #    #     #       #   #   #        # #      #\033[0m"
+      echo -e "\033[40;35;1m # #   #  ###     #      ###   ####     ###     #     ######  ####    #####    #   #     #\033[0m"
+      echo -e "\033[40;35;1m #                                                                                       #\033[0m"
+      echo -e "\033[40;35;1m #---------------------------------------------------------------------------------------#\033[0m"
+
+      echo '  configure [--name or -n] [--version or -v] [--prefix or -p] [--verbose] [--ccache] [--compiler or -c] [--mulcore or -j] [--stat or -s] [--form or -f]' 
+      echo '  --name     -n  :  decide what name you want to define! default is "my_app" ' 
+      echo '  --version  -v  :  decide which version for your app! default is empty ' 
+      echo '  --perfix   -p  :  decide where you want to install! default is no install ' 
+      echo '  --verbose      :  display detail infos on compile command! default is no verbose ' 
+      echo '  --ccache       :  set up ccache support! ccache can speed up the repeat-compile greately! if set up,please install ccache first! default is no support!' 
+      echo '  --compiler -c  :  default is gcc, now only support:[gcc | clang], please don not use other compilers! ' 
+      echo '  --mulcore  -j  :  decide how many tasks you want to compile at the same time! default is "1" ' 
+      echo '  --stat     -s  :  compile-stats has 3 stats: BIN(binary), STATIC(.a), SHARED(.so) ' 
+      echo -e '			DO NOTHING,here same as BIN ONLY	: 000 or 0 '
+      echo -e '			BIN only             			: 001 or 1 '
+      echo -e '			SHARED only          			: 010 or 2 '
+      echo -e '			SHARED and BIN       			: 011 or 3 '
+      echo -e '			STATIC only          			: 100 or 4 '
+      echo -e '			STATIC and BIN 	     			: 101 or 5 '
+      echo -e '			STATIC and SHARED    			: 110 or 6 '
+      echo -e '			STATIC and SHARED and BIN   		: 111 or 7 '
       echo '  --form     -f  :  set echo style, form just like: foreground-color;background-color;action   '
-      echo '  				    default style is 40;35;1   ,if you want set form, please read define just as follow:'
+      echo '                    default style is 40;35;1   ,if you want set form, please read define just as follow:'
       echo '                    --background-color define:'
       echo -e '					  40: black       -- \033[40m hello,world! \033[0m'
       echo -e '					  41: dark red    -- \033[41m hello,world! \033[0m'
@@ -73,30 +90,44 @@ case "$1" in
     -c*=* | --compiler=*)              CXX=`echo $1 | sed 's/.*=//'`;shift ;;
     -f*=* | --form=*)                  FORM=`echo $1 | sed 's/.*=//'`;shift ;;
     -j*=* | --mulcore=*)               APP_MULCORE=`echo $1 | sed 's/.*=//'`;shift ;;
+    -s*=* | --stat=*)                  APP_STAT=`echo $1 | sed 's/.*=//'`;shift ;;
+    -v*=* | --version=*)               APP_VERSION=`echo $1 | sed 's/.*=//'`;shift ;;
     -p* | --prefix)                    APP_INSTALL_PATH="$2"; shift; shift ;;
     -n* | --name)                      APP_NAME="$2"; shift; shift ;;
     -c* | --compiler)                  CXX="$2"; shift; shift ;;
     -f* | --form)                      FORM="$2"; shift; shift ;;
     -j* | --mulcore)                   APP_MULCORE="$2"; shift; shift ;;
-    -s* | --shared | --enable-shared)  APP_STAT=${SHARED}; shift ;;
-    -t | --static)                     APP_STAT=${STATIC}; shift ;;
+    -s* | --stat)                      APP_STAT="$2"; shift; shift ;;
+    -v* | --version)                   APP_VERSION="$2"; shift; shift ;;
     --verbose)                         APP_DBG=1; shift ;;
-    --compress)                        APP_COMPRESS=1; shift ;;
+    --ccache)                          CCACHE=1; shift ;;
     *)
       echo "unknown option: $1" 
       echo "$0 --help for help" 
       exit ;;
     esac
 done
-#APP_NAME="${APP_NAME}_$(date '+%Y%m%d%H')"
+
 ###########################################
+
+echo -e "\033[40;35;1m #---------------------------------------------------------------------------------------#\033[0m"
+echo -e "\033[40;35;1m #                                                                                       #\033[0m"
+echo -e "\033[40;35;1m #     #     #   #  ######   ###   ####    #   #    #     #       ####    #####    ####  #\033[0m"
+echo -e "\033[40;35;1m #    ##    #   #    #     #   #  #   #   #   #    #     #       #   #   #        #   #  #\033[0m"
+echo -e "\033[40;35;1m #   # #   #   #    #     #   #  ####    #   #    #     #       #   #   #####    ####    #\033[0m"
+echo -e "\033[40;35;1m #  ####  #   #    #     #   #  #   #   #   #    #     #       #   #   #        # #      #\033[0m"
+echo -e "\033[40;35;1m # #   #  ###     #      ###   ####     ###     #     ######  ####    #####    #   #     #\033[0m"
+echo -e "\033[40;35;1m #                                                                                       #\033[0m"
+echo -e "\033[40;35;1m #---------------------------------------------------------------------------------------#\033[0m"
+echo "*********************"
 echo -e "\033[40;32;1m Check if CONFIG args valid!\033[0m"
 
 echo -e "APP_NAME=${APP_NAME}"
+echo -e "APP_VERSION=${APP_VERSION}"
 echo -e "APP_INSTALL_PATH=${APP_INSTALL_PATH}"
 echo -e "CXX=${CXX}"
 case "${CXX}" in
-    gcc|clang|g++|clang++)   ;;
+    gcc|clang)   ;;
     *)
       echo -e "\033[40;31;1m ERROR   : Unknown option for --compile or -c, this only support [gcc | clang]!!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
@@ -114,9 +145,9 @@ case "${FORM}" in
 
 echo -e "APP_STAT=${APP_STAT}"
 case "${APP_STAT}" in
-    [012])   ;;
+    [1-7] | [0-1][0-1][0-1])   ;;
     *)
-      echo -e "\033[40;31;1m ERROR   : Unknown option for -s or -t, this support \"40~47;30~37;[0124578]\" !!!\033[0m"
+      echo -e "\033[40;31;1m ERROR   : Unknown option for -s or -t, this support \"[1-7] | [0-1][0-1][0-1]\" !!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
       exit ;;
     esac
@@ -125,26 +156,32 @@ echo -e "APP_DBG=${APP_DBG}"
 case "${APP_DBG}" in
     [01])   ;;
     *)
-      echo -e "\033[40;31;1m ERROR   : Unknown option for --verbose, this support \"40~47;30~37;[0124578]\" !!!\033[0m"
+      echo -e "\033[40;31;1m ERROR   : Unknown option for --verbose, this support \"[0-1]\" !!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
       exit ;;
     esac
 
-echo -e "APP_COMPRESS=${APP_COMPRESS}"
-case "${APP_DBG}" in
+echo -e "CCACHE=${CCACHE}"
+case "${CCACHE}" in
     [01])   ;;
     *)
-      echo -e "\033[40;31;1m ERROR   : Unknown option for --compress, this support \"40~47;30~37;[0124578]\" !!!\033[0m"
+      echo -e "\033[40;31;1m ERROR   : Unknown option for --ccache, this support \"[0-1]\" !!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
       exit ;;
     esac
 
+if [ ${CCACHE} -eq 1 ]; then
+	CXX="ccache ${CXX}"
+fi
+
+echo "*********************"
 ###########################################
 echo -e "\033[40;32;1m Check the Dirs!!\033[0m"
 if [ ! -d ${APP_ROOT}/src ]; then
   echo -e "\033[40;31;1m ERROR   : No src dir find in your root dir!!!\033[0m"
   exit;
 fi
+echo "*********************"
 
 if [ ! -d ${APP_ROOT}/obj ]; then
   mkdir -p ${APP_ROOT}/obj
@@ -158,16 +195,28 @@ if [ ! -d ${APP_ROOT}/lib ]; then
   mkdir -p ${APP_ROOT}/lib
 fi
 
+#if [ ! -d ${APP_ROOT}/deps ]; then
+#  mkdir -p ${APP_ROOT}/deps
+#fi
+
+if [ ! -d ${APP_ROOT}/include ]; then
+  mkdir -p ${APP_ROOT}/include
+fi
+
 if [ ! -d ${APP_ROOT}/conf ]; then
   mkdir -p ${APP_ROOT}/conf
 fi
+
 if [ ! -d ${APP_ROOT}/log ]; then
   mkdir -p ${APP_ROOT}/log
 fi
+
 APP_SRC_PATH=${APP_ROOT}/src
 APP_OBJ_PATH=${APP_ROOT}/obj
 APP_BIN_PATH=${APP_ROOT}/bin
 APP_LIB_PATH=${APP_ROOT}/lib
+#APP_DEPS_PATH=${APP_ROOT}/deps
+APP_INCLUDE_PATH=${APP_ROOT}/include
 APP_CONF_PATH=${APP_ROOT}/conf
 APP_LOG_PATH=${APP_ROOT}/log
 
@@ -176,7 +225,7 @@ APP_INCLUDE=()
 ###################################
 ########check lib is exist#########
 echo -e "\033[40;32;1m Check if DLIBS SLIBS and INCLUDE valid!\033[0m"
-DLIBS=($(sed -n '/-[Ll]/p' ${MAKEFILE_COMM_PATH} | sed -e '/#/d' -e 's/.*=//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
+DLIBS=($(sed -n '/-[Ll]/p' ${MAKEFILE_CONF_PATH} | sed -e '/#/d' -e '/:/d'-e 's/.*=//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
 echo "===================="
 index=0
 len=${#DLIBS[*]}
@@ -228,7 +277,7 @@ done
 echo "===================="
 
 index=0
-SLIBS=($(sed -n '/\.a/p' ${MAKEFILE_COMM_PATH} | sed -e '/#/d' -e 's/.*=//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
+SLIBS=($(sed -n '/\.a/p' ${MAKEFILE_CONF_PATH} | sed -e '/#/d' -e '/:/d' -e 's/.*=//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
 len=${#SLIBS[*]}
 while [ $index -lt $len ]
 do
@@ -251,7 +300,7 @@ done
 echo "===================="
 
 index=0
-CINCLUDE=($(sed -n '/-I/p' ${MAKEFILE_COMM_PATH} | sed -e '/#/d' -e 's/.*=//' -e 's/-I//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
+CINCLUDE=($(sed -n '/-I/p' ${MAKEFILE_CONF_PATH} | sed -e '/#/d' -e 's/.*=//' -e 's/-I//' -e 's/\\//' -e 's/\r//' -e 's/\n//'))
 len=${#CINCLUDE[*]}
 while [ $index -lt $len ]
 do
@@ -268,7 +317,8 @@ do
   let index=index+1
 done
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
-############cp makefile.sub to sub_dirs#################
+############cp makefile.subs to sub_dirs#################
+echo "*********************"
 echo -e "\033[40;32;1m Distribute makefile.sub!!\033[0m"
 ALL_SRC_DIRS=($(find ${APP_SRC_PATH} -type d -name '[a-z]*' -print))
 
@@ -286,6 +336,15 @@ do
 			else
 				cp ${MAKEFILE_SUB_PATH} ${elem}/makefile.sub
 			fi
+			if [ -f ${elem}/makefile.sub.shared ]; then
+				diff ${elem}/makefile.sub.shared ${MAKEFILE_SUB_SHARED_PATH}
+				if [ $? -gt 0 ]; then	
+					cp ${MAKEFILE_SUB_SHARED_PATH} ${elem}/makefile.sub.shared
+				fi
+			else
+				cp ${MAKEFILE_SUB_SHARED_PATH} ${elem}/makefile.sub.shared
+			fi
+	
 			VALID_SRC_DIRS=(${VALID_SRC_DIRS[@]} ${elem})
 		fi
 	fi	
@@ -310,18 +369,33 @@ if [ ${APP_SRC_PATH_IS_EXIST_IN_INCLUDE} -eq 0 ]; then
 	APP_INCLUDE=(${APP_INCLUDE[@]} "-I${APP_SRC_PATH}")
 fi
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
+echo "*********************"
 echo -e "\033[40;32;1m Generate makefile!!\033[0m"
 ########################generate makefile################################
 echo "APP_INCLUDE=${APP_INCLUDE[@]}" > ${APP_ROOT}/makefile
-echo -e "APP_DATE\t:=\$(shell date '+%Y%m%d%H')" >> ${APP_ROOT}/makefile
 ####################<<ALL>>############################
 echo "all:" >> ${APP_ROOT}/makefile
+if [ ${#APP_STAT} -eq 3 ]; then
+	tmp=0	
+	let tmp+=${APP_STAT:0:1}*4
+	let tmp+=${APP_STAT:1:1}*2
+	let tmp+=${APP_STAT:2:1}
+	APP_STAT=${tmp}
+	if [ ${APP_STAT} -eq 0 ]; then
+		APP_STAT=1
+	fi
+fi
+#whether build to BIN?
+BUILD_BIN=0
+case "${APP_STAT}" in
+    [1357]) 
+	BUILD_BIN=1
 
-for elem in ${VALID_SRC_DIRS[@]}
+	for elem in ${VALID_SRC_DIRS[@]}
 do
         echo ${elem} | grep -q '[.]'
         if [ $? -gt 0 ]; then
-                obj_cmd="\t @cd ${elem}; make -f makefile.sub MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\""
+                obj_cmd="\t @cd ${elem}; make -f makefile.sub MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\""
                 if [ ${APP_MULCORE} -gt 0 ]; then
                         obj_cmd="${obj_cmd} -j${APP_MULCORE}"
                 fi
@@ -333,46 +407,113 @@ do
         fi
 done
 
-ld_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefileobj MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_TARGET=\"${APP_BIN_PATH}/${APP_NAME}\""
-if [ ${APP_DBG} -eq 0 ]; then
-        ld_cmd="${ld_cmd} -s"
-fi
+	ld_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefile.bin MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_TARGET=\"${APP_BIN_PATH}/${APP_NAME}\""
+	if [ ${APP_DBG} -eq 0 ]; then
+        	ld_cmd="${ld_cmd} -s"
+	fi
 
-echo -e ${ld_cmd}>>${APP_ROOT}/makefile
+	echo -e ${ld_cmd}>>${APP_ROOT}/makefile;;
+    *)
+    esac
+
+#whether build to SHARED?
+case "${APP_STAT}" in
+    [2367]) 
+	for elem in ${VALID_SRC_DIRS[@]}
+do
+        echo ${elem} | grep -q '[.]'
+        if [ $? -gt 0 ]; then
+                obj_cmd="\t @cd ${elem}; make -f makefile.sub.shared MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\" APP_ROOT=\"${APP_ROOT}\""
+                if [ ${APP_MULCORE} -gt 0 ]; then
+                        obj_cmd="${obj_cmd} -j${APP_MULCORE}"
+                fi
+                if [ ${APP_DBG} -eq 0 ]; then
+                        obj_cmd="${obj_cmd} -s"
+                fi
+
+                echo -e ${obj_cmd}>>${APP_ROOT}/makefile
+        fi
+done
+
+	fmt_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make fmt -f makefile.shared MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	shared_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefile.shared MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	location_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make location -f makefile.shared MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	if [ ${APP_DBG} -eq 0 ]; then
+        	fmt_cmd="${fmt_cmd} -s"
+        	shared_cmd="${shared_cmd} -s"
+        	location_cmd="${location_cmd} -s"
+	fi
+
+	echo -e ${fmt_cmd}>>${APP_ROOT}/makefile
+	echo -e ${shared_cmd}>>${APP_ROOT}/makefile
+	echo -e ${location_cmd}>>${APP_ROOT}/makefile;;
+    *)
+    esac
+
+#whether build to STATIC?
+case "${APP_STAT}" in
+    [4567]) 
+	if [ ${BUILD_BIN} -eq 0 ]; then
+		for elem in ${VALID_SRC_DIRS[@]}
+		do
+        		echo ${elem} | grep -q '[.]'
+        		if [ $? -gt 0 ]; then
+                		obj_cmd="\t @cd ${elem}; make -f makefile.sub MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_INCLUDE=\"\${APP_INCLUDE}\""
+                		if [ ${APP_MULCORE} -gt 0 ]; then
+                        		obj_cmd="${obj_cmd} -j${APP_MULCORE}"
+                		fi
+                		if [ ${APP_DBG} -eq 0 ]; then
+                        		obj_cmd="${obj_cmd} -s"
+                		fi
+
+                		echo -e ${obj_cmd}>>${APP_ROOT}/makefile
+        		fi
+		done
+	fi
+	fmt_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make fmt -f makefile.static MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	static_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefile.static MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	location_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make location -f makefile.static MAKEFILE_CONF_PATH=\"${MAKEFILE_CONF_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_LIB_PATH=\"${APP_LIB_PATH}\" APP_ROOT=\"${APP_ROOT}\""
+	if [ ${APP_DBG} -eq 0 ]; then
+        	fmt_cmd="${fmt_cmd} -s"
+        	static_cmd="${static_cmd} -s"
+        	location_cmd="${location_cmd} -s"
+	fi
+
+	echo -e ${fmt_cmd}>>${APP_ROOT}/makefile
+	echo -e ${static_cmd}>>${APP_ROOT}/makefile
+	echo -e ${location_cmd}>>${APP_ROOT}/makefile;;
+    *)
+    esac
+
 #########################<<clean>>##############################
 
 echo "clean:" >> ${APP_ROOT}/makefile
+echo -e "\t rm -f ${APP_ROOT}/bin/*" >>${APP_ROOT}/makefile
+echo -e "\t rm -f ${APP_ROOT}/lib/*" >>${APP_ROOT}/makefile
 echo -e "\t rm -f ${APP_ROOT}/obj/*" >>${APP_ROOT}/makefile
 
 #########################<<distclean>>##############################
 echo "distclean:" >> ${APP_ROOT}/makefile
 for elem in ${VALID_SRC_DIRS[@]}
 do
-	echo -e "\t rm -f ${elem}/makefile.sub" >>${APP_ROOT}/makefile
+	echo -e "\t rm -f ${elem}/makefile.sub*" >>${APP_ROOT}/makefile
 done
-echo -e "\t rm -f ${APP_ROOT}/bin/* ${APP_ROOT}/obj/*" >>${APP_ROOT}/makefile
 echo -e "\t rm -f ${APP_ROOT}/makefile" >>${APP_ROOT}/makefile
+echo -e "\t rm -f ${APP_ROOT}/bin/*" >>${APP_ROOT}/makefile
+echo -e "\t rm -f ${APP_ROOT}/lib/*" >>${APP_ROOT}/makefile
+echo -e "\t rm -f ${APP_ROOT}/obj/*" >>${APP_ROOT}/makefile
 
 #########################<<install>>##############################
 echo "install:" >> ${APP_ROOT}/makefile
-echo -e "\t mv ${APP_BIN_PATH}/${APP_NAME} ${APP_BIN_PATH}/${APP_NAME}_\${APP_DATE}">>${APP_ROOT}/makefile
-echo -e "\t echo \"./${APP_NAME}_\${APP_DATE} daemon\">${APP_BIN_PATH}/start.sh">>${APP_ROOT}/makefile
-echo -e "\t echo \"killall -9 ${APP_NAME}_\${APP_DATE}\">${APP_BIN_PATH}/stop.sh">>${APP_ROOT}/makefile
-echo -e "\t echo \"./stop.sh;sleep 1;./start.sh\">${APP_BIN_PATH}/restart.sh">>${APP_ROOT}/makefile
-echo -e "\t chmod +x ${APP_BIN_PATH}/*.sh">>${APP_ROOT}/makefile
+if [ ! -z ${APP_VERSION} ]; then
+	echo -e "\t \$(foreach elem,\$(wildcard ${APP_LIB_PATH}/*),\$(shell mv \$(elem) \$(elem).${APP_VERSION}))">>${APP_ROOT}/makefile
+fi
 if [ ! -z ${APP_INSTALL_PATH} ]; then
-	APP_INSTALL_PATH="$(echo "${APP_INSTALL_PATH}" | sed -e 's/\/$//')"
-	APP_INSTALL_PATH="${APP_INSTALL_PATH}/${APP_ROOT##*/}"
 	echo -e "\t mkdir -p ${APP_INSTALL_PATH} ">>${APP_ROOT}/makefile
-	echo -e "\t cp -r ${APP_BIN_PATH} ${APP_LIB_PATH} ${APP_CONF_PATH} ${APP_LOG_PATH} ${APP_INSTALL_PATH}">>${APP_ROOT}/makefile
+	echo -e "\t cp -r ${APP_BIN_PATH} ${APP_LIB_PATH} ${APP_CONF_PATH} ${APP_LOG_PATH} ${APP_INCLUDE_PATH} ${APP_INSTALL_PATH}">>${APP_ROOT}/makefile
 fi
-if [ 1 -eq ${APP_COMPRESS} ]; then
-	echo -e "\t zip -r "$(echo "${APP_ROOT}" | sed -e 's/.*\///').zip" conf bin lib log">>${APP_ROOT}/makefile
-fi
-
-#echo -e "\t cd ${APP_ROOT};cd ..">>${APP_ROOT}/makefile
-#echo -e "\t zip -r ${APP_ROOT}">>${APP_ROOT}/makefile
 
 #########################<<add x for makefile>>##############################
 chmod +x ${APP_ROOT}/makefile
+echo "*********************"
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#

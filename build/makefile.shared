@@ -1,0 +1,30 @@
+include $(MAKEFILE_CONF_PATH)
+OBJDIR = $(APP_OBJ_PATH)
+TARGET_ROOT = $(APP_LIB_PATH)
+
+head_target=$(firstword $(subst :, ,$(1)))
+body_deps=$(patsubst %.c,/%.fo,$(patsubst %.cpp,%.fo,$(patsubst %.cc,%.fo,$(filter-out %.so,$(subst |, ,$(subst :, ,$(1)))))))
+
+file_prefix=$(subst .so, ,$(firstword $(subst :, ,$(1))))
+
+all:$(foreach elem,$(SHARED_TARGETS),$(call head_target,$(elem)))
+
+%.so:$(OBJDIR)/*.fo.so%
+ifeq ($(APP_DBG),0)
+	@echo -e '\033[$(FORM)m    building shared file ... \033[0m'
+	@echo -e '\033[$(FORM)m    $(filter gcc clang,$(CXX)) $^ -o $@ -shared \033[0m'
+	@$(filter gcc clang,$(CXX)) $^ -o $@ -shared 
+else
+	$(filter gcc clang,$(CXX)) $^ -o $@ -shared 
+endif
+
+
+.PHONY:fmt 
+fmt:
+	$(foreach elem,$(SHARED_TARGETS),$(foreach file,$(call body_deps,$(elem)),$(shell ln -sf $(OBJDIR)/$(file) $(OBJDIR)/$(file).so$(call file_prefix,$(elem)))))
+
+.PHONY:location
+location:
+	@mv -f $(APP_ROOT)/build/*.so $(TARGET_ROOT)
+	@if [ -d "$(APP_ROOT)/src/include" ]; then cp -r $(APP_ROOT)/src/include/* $(APP_ROOT)/include; fi
+	

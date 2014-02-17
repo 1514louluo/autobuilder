@@ -1,20 +1,27 @@
 autobuilder:
-	version ->1.0
-	env ->just for linux or unix platform, with gcc or clang compiler
-	aim ->just for convenient 
+	version ->2.0
+	env ->just for linux or unix platform, with gcc or clang compiler, now only test on bash.
+	aim ->just for convenient, little learning costs.
+	new features:
+	1. support build .so and .a!
+	2. support ccache
+	2. support multiple-tasks compile at the same time.
 
 operate sequence:
+	first of all. you must put your all src-files in "src" dir which is in program root dir.
+		/xx/xx/PROGRAM_ROOT/src: here put your all src-files!!!
 	1. move all dir in autobuilder to your program root dir, command just like:
-	   mv autobuilder/*  /XXXX/XXXX/YOUR PROGRAM
-	2. modify 'makefile.comm' in 'build' dir, add your own -I/dir or -llib 	
+	   	mv autobuilder/*  /XXXX/XXXX/PROGRAM_ROOT
+	2. modify 'makefile.conf' in 'build' dir, add your own define, such as -I/dir or -llib...and so no!
 	3. ./configure, get detail by command:
-	   ./configure --help    or      ./configure -h
+	   	./configure --help    or      ./configure -h
 	4. make	
 	5. make install
 	6. make clean
 	7. make distclean
 	
 thanks:
-	idea come from hengpan's raw framework and jiaxin help me test!
+	hengpan and jiaxin's help me test!
 
 														author louluo
+

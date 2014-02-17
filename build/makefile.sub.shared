@@ -1,0 +1,22 @@
+include $(MAKEFILE_CONF_PATH)
+OBJDIR = $(APP_OBJ_PATH)
+INCLUDE+=$(APP_INCLUDE)
+
+ALL_SOURCES = $(wildcard *.c) $(wildcard *.cpp) $(wildcard *.cc)
+
+SHARED_SOURCES = $(filter-out %.so,$(subst |, ,$(subst :, ,$(SHARED_TARGETS))))
+
+SOURCES = $(foreach elem,$(ALL_SOURCES),$(filter $(elem),$(SHARED_SOURCES)))
+
+BINARY = $(patsubst %.c,$(OBJDIR)/%.fo,$(patsubst %.cpp,$(OBJDIR)/%.fo,$(patsubst %.cc,$(OBJDIR)/%.fo,$(SOURCES))))
+
+
+all:$(BINARY)
+$(OBJDIR)/%.fo:%.c*
+ifeq ($(APP_DBG),0)
+	@echo -e '\033[$(FORM)m    $(CXX) -fPIC -c $(CFLAGS) $< \033[0m'
+	@$(CXX) $< -o $@ -fPIC -c $(INCLUDE) $(CFLAGS)
+else
+	$(CXX) $< -o $@ -fPIC -c $(INCLUDE) $(CFLAGS)
+endif
+

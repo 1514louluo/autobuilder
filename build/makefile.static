@@ -1,0 +1,31 @@
+include $(MAKEFILE_CONF_PATH)
+OBJDIR = $(APP_OBJ_PATH)
+TARGET_ROOT = $(APP_LIB_PATH)
+
+head_target=$(firstword $(subst :, ,$(1)))
+body_deps=$(patsubst %.c,/%.o,$(patsubst %.cpp,%.o,$(patsubst %.cc,%.o,$(filter-out %.a,$(subst |, ,$(subst :, ,$(1)))))))
+
+file_prefix=$(subst .a, ,$(firstword $(subst :, ,$(1))))
+
+
+all:$(foreach elem,$(STATIC_TARGETS),$(call head_target,$(elem)))
+
+%.a:$(OBJDIR)/*.a%
+ifeq ($(APP_DBG),0)
+	@echo -e '\033[$(FORM)m    building static file ... \033[0m'
+	@echo -e '\033[$(FORM)m    ar crv $@ $^ \033[0m'
+	@ar crv $@ $^ $(SLIBS)
+else
+	ar crv $@ $^ $(SLIBS)
+endif
+
+
+.PHONY:fmt 
+fmt:
+	$(foreach elem,$(STATIC_TARGETS),$(foreach file,$(call body_deps,$(elem)),$(shell ln -sf $(OBJDIR)/$(file) $(OBJDIR)/$(file).a$(call file_prefix,$(elem)))))
+
+.PHONY:location
+location:
+	@mv -f $(APP_ROOT)/build/*.a $(TARGET_ROOT)
+	@if [ -d "$(APP_ROOT)/src/include" ]; then cp -r $(APP_ROOT)/src/include/* $(APP_ROOT)/include; fi
+
