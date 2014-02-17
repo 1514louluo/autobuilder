@@ -5,7 +5,7 @@ autobuilder:
 	new features:
 	1. support build .so and .a!
 	2. support ccache
-	2. support multiple-tasks compile at the same time.
+	3. support multiple-tasks compile at the same time.
 
 operate sequence:
 	first of all. you must put your all src-files in "src" dir which is in program root dir.
