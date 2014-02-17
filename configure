@@ -335,7 +335,7 @@ done
 
 ld_cmd="\t @cd ${MAKEFILE_BASE_PATH}; make -f makefileobj MAKEFILE_COMM_PATH=\"${MAKEFILE_COMM_PATH}\" APP_OBJ_PATH=\"${APP_OBJ_PATH}\" APP_DBG=${APP_DBG} CXX=\"${CXX}\" FORM=\"${FORM}\" APP_TARGET=\"${APP_BIN_PATH}/${APP_NAME}\""
 if [ ${APP_DBG} -eq 0 ]; then
-        ld_cmd="${ld_cmd} -s"
+        obj_cmd="${obj_cmd} -s"
 fi
 
 echo -e ${ld_cmd}>>${APP_ROOT}/makefile
