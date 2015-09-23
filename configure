@@ -24,7 +24,7 @@ MAKEFILE_CONF_PATH=${APP_ROOT}/build/makefile.conf
 MAKEFILE_SHARED_PATH=${APP_ROOT}/build/makefile.shared
 MAKEFILE_STATIC_PATH=${APP_ROOT}/build/makefile.static
 MAKEFILE_OBJ_PATH=${APP_ROOT}/build/makefile.bin
-# process command line options, shift 相当于左移,自然$#就减1
+# process command line options, shift 脧脿碌卤脫脷脳贸脪脝,脳脭脠禄$#戮脥录玫1
 while test $# -ge 1
 do
 case "$1" in
@@ -45,7 +45,7 @@ case "$1" in
       echo '  --perfix   -p  :  decide where you want to install! default is no install ' 
       echo '  --verbose      :  display detail infos on compile command! default is no verbose ' 
       echo '  --ccache       :  set up ccache support! ccache can speed up the repeat-compile greately! if set up,please install ccache first! default is no support!' 
-      echo '  --compiler -c  :  default is gcc, now only support:[gcc | clang], please don not use other compilers! ' 
+      echo '  --compiler -c  :  default is gcc, now only support:[gcc | g++ | clang | clang++], please don not use other compilers! ' 
       echo '  --mulcore  -j  :  decide how many tasks you want to compile at the same time! default is "1" ' 
       echo '  --stat     -s  :  compile-stats has 3 stats: BIN(binary), STATIC(.a), SHARED(.so) ' 
       echo -e '			DO NOTHING,here same as BIN ONLY	: 000 or 0 '
@@ -127,9 +127,9 @@ echo -e "APP_VERSION=${APP_VERSION}"
 echo -e "APP_INSTALL_PATH=${APP_INSTALL_PATH}"
 echo -e "CXX=${CXX}"
 case "${CXX}" in
-    gcc|clang)   ;;
+    gcc|g++|clang|clang++)   ;;
     *)
-      echo -e "\033[40;31;1m ERROR   : Unknown option for --compile or -c, this only support [gcc | clang]!!!\033[0m"
+      echo -e "\033[40;31;1m ERROR   : Unknown option for --compile or -c, this only support [gcc | g++ | clang | clang++]!!!\033[0m"
       echo -e "\033[40;31;1m 	       Please configure --help or -h for help!!!\033[0m"
       exit ;;
     esac
