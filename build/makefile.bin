@@ -8,8 +8,8 @@ $(TARGET):$(OBJ)
 ifeq (${APP_DBG},0)
 	@echo -e '\033[$(FORM)m    building bin file ... \033[0m'
 	@echo -e '\033[$(FORM)m    ld $(OBJ) \033[0m'
-	@$(filter gcc clang,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
+	@$(filter gcc clang g++ clang++,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
 else
-	$(filter gcc clang,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
+	$(filter gcc clang g++ clang++,$(CXX)) -g -o  $@ $(OBJ) $(LIBS)
 endif
 
