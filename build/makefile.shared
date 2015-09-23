@@ -12,10 +12,10 @@ all:$(foreach elem,$(SHARED_TARGETS),$(call head_target,$(elem)))
 %.so:$(OBJDIR)/*.fo.so%
 ifeq ($(APP_DBG),0)
 	@echo -e '\033[$(FORM)m    building shared file ... \033[0m'
-	@echo -e '\033[$(FORM)m    $(filter gcc clang,$(CXX)) $^ -o $@ -shared \033[0m'
-	@$(filter gcc clang,$(CXX)) $^ -o $@ -shared 
+	@echo -e '\033[$(FORM)m    $(filter gcc clang g++ clang++,$(CXX)) $^ -o $@ -shared \033[0m'
+	@$(filter gcc clang g++ clang++,$(CXX)) $^ -o $@ -shared 
 else
-	$(filter gcc clang,$(CXX)) $^ -o $@ -shared 
+	$(filter gcc clang g++ clang++,$(CXX)) $^ -o $@ -shared 
 endif
 
 
